@@ -52,3 +52,20 @@ body{
     border-radius: 10px;
     background: rgba(45, 43, 43, 0.395);
 }
+
+@media (max-width: 440px){
+    .game{
+        width: 280px;
+        height: 280px;
+        padding: .5rem;
+    }
+    .game img{
+        width: 30px;
+        height: 30px;
+    }
+    .score-board{
+        top: 0;
+        bottom: auto;
+        margin-top: 4rem;
+    }
+}
