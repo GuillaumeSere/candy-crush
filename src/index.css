@@ -1,13 +1,54 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+*{
+    margin: 0;
+    padding: 0;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+body{
+    background: url(./images/bg.png);
+}
+.header{
+    color: rgb(222, 222, 222);
+    position: absolute;
+    top: 0;
+    height: 40px;
+    text-transform: uppercase;
+    background: rgba(83, 81, 81, 0.536);
+    border-bottom: 1px solid white;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 10px 10px rgba(200, 200, 200, 0.5);
+}
+.header h2{
+    margin-top: .5rem;
+}
+.app{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 30px;
+    margin-top: 5rem;
+}
+.game{
+    width: 560px;
+    height: 560px;
+    border: 1px solid white;
+    background: rgba(45, 43, 43, 0.395);
+    padding: 1rem;
+    border-radius: 10px;
+    display: flex;
+    flex-wrap: wrap;
+}
+.game img{
+    width: 70px;
+    height: 70px;
+}
+.score-board{
+    position: absolute;
+    bottom: 0;
+    margin-bottom: 10rem;
+    color: rgb(201, 201, 201);
+    border: 1px solid white;
+    padding: 0 1rem;
+    border-radius: 10px;
+    background: rgba(45, 43, 43, 0.395);
 }
