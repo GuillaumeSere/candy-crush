@@ -53,15 +53,15 @@ body{
     background: rgba(45, 43, 43, 0.395);
 }
 
-@media (max-width: 440px){
+@media (max-width: 350px){
     .game{
         width: 280px;
         height: 280px;
         padding: .5rem;
     }
     .game img{
-        width: 30px;
-        height: 30px;
+        width: 31px;
+        height: 31px;
     }
     .score-board{
         top: 0;
