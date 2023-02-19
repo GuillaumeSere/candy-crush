@@ -48,7 +48,7 @@ const App = () => {
 
             if (notValid.includes(i)) continue
 
-            if (rowOfFour.every(square => currentColorArrangment[square] === decidedColor && !isBlank )) {
+            if (rowOfFour.every(square => currentColorArrangment[square] === decidedColor && !isBlank)) {
                 setScoreDisplay((score) => score + 4)
                 rowOfFour.forEach(square => currentColorArrangment[square] = blank)
                 return true
@@ -112,8 +112,52 @@ const App = () => {
         setSquareBeingReplaced(e.target)
     }
 
+
+    const handleTouchStart = (e) => {
+        const squareBeingDragged = e.target;
+        setSquareBeingDragged(squareBeingDragged);
+    }
+
+    const handleTouchMove = (e) => {
+        const squareBeingReplaced = e.target;
+        setSquareBeingReplaced(squareBeingReplaced);
+    }
+
+    const handleTouchEnd = () => {
+        const squareBeingDraggedId = parseInt(squareBeingDragged.getAttribute('data-id'))
+        const squareBeingReplacedId = parseInt(squareBeingReplaced.getAttribute('data-id'))
+
+        currentColorArrangment[squareBeingReplacedId] = squareBeingDragged.getAttribute('src')
+        currentColorArrangment[squareBeingDraggedId] = squareBeingReplaced.getAttribute('src')
+
+        const validMoves = [
+            squareBeingDraggedId - 1,
+            squareBeingDraggedId - width,
+            squareBeingDraggedId + 1,
+            squareBeingDraggedId + width
+        ]
+
+        const validMove = validMoves.includes(squareBeingReplacedId)
+
+        const isAColumnOfFour = checkForColumnOfFour()
+        const isARowOfFour = checkForRowOfFour()
+        const isAColumnOfThree = checkForColumnOfThree()
+        const isARowOfThree = checkForRowOfThree()
+
+        if (squareBeingReplacedId &&
+            validMove &&
+            (isARowOfThree || isARowOfFour || isAColumnOfFour || isAColumnOfThree)) {
+            setSquareBeingDragged(null)
+            setSquareBeingReplaced(null)
+        } else {
+            currentColorArrangment[squareBeingReplacedId] = squareBeingReplaced.getAttribute('src')
+            currentColorArrangment[squareBeingDraggedId] = squareBeingDragged.getAttribute('src')
+            setCurrentColorArrangment([...currentColorArrangment])
+        }
+    }
+
     const dragEnd = () => {
-    
+
         const squareBeingDraggedId = parseInt(squareBeingDragged.getAttribute('data-id'))
         const squareBeingReplacedId = parseInt(squareBeingReplaced.getAttribute('data-id'))
 
@@ -191,10 +235,13 @@ const App = () => {
                         onDragLeave={(e) => e.preventDefault()}
                         onDrop={dragDrop}
                         onDragEnd={dragEnd}
+                        onTouchStart={handleTouchStart}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
                     />
                 ))}
             </div>
-            <ScoreBoard score={scoreDisplay}/>
+            <ScoreBoard score={scoreDisplay} />
         </div>
     );
 }
