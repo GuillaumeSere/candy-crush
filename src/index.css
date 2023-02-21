@@ -44,14 +44,15 @@ body{
 }
 .score-board{
     position: absolute;
-    bottom: 0;
-    margin-bottom: 10rem;
+    top: 0;
+    margin-top: 3.5rem;
     color: rgb(201, 201, 201);
     border: 1px solid white;
     padding: 0 1rem;
     border-radius: 10px;
     background: rgba(45, 43, 43, 0.395);
 }
+
 
 @media (max-width: 400px){
     .game{
@@ -62,10 +63,5 @@ body{
     .game img{
         width: 32px;
         height: 32px;
-    }
-    .score-board{
-        top: 0;
-        bottom: auto;
-        margin-top: 4rem;
     }
 }

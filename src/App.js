@@ -7,7 +7,6 @@ import redCandy from './images/red-candy.png';
 import yellowCandy from './images/yellow-candy.png';
 import blank from './images/blank.png';
 import ScoreBoard from "./components/ScoreBoard";
-import Hammer from 'hammerjs';
 
 const width = 8;
 const candyColors = [
@@ -49,7 +48,7 @@ const App = () => {
 
             if (notValid.includes(i)) continue
 
-            if (rowOfFour.every(square => currentColorArrangment[square] === decidedColor && !isBlank)) {
+            if (rowOfFour.every(square => currentColorArrangment[square] === decidedColor && !isBlank )) {
                 setScoreDisplay((score) => score + 4)
                 rowOfFour.forEach(square => currentColorArrangment[square] = blank)
                 return true
@@ -113,63 +112,8 @@ const App = () => {
         setSquareBeingReplaced(e.target)
     }
 
-    
-    // Nous devons également modifier les événements appelés lorsque l'utilisateur interagit avec l'écran tactile.
-    
-    const handleTouchStart = (e) => {
-        const squareBeingDragged = e.target;
-        setSquareBeingDragged(squareBeingDragged);
-    }
-    
-    const handleTouchMove = (e) => {
-        const squareBeingReplaced = e.target;
-        setSquareBeingReplaced(squareBeingReplaced);
-    }
-    
-    const handleTouchEnd = () => {
-        // Nous devons également modifier l'API pour les bibliothèques tierces pour capturer les gestes tactiles et les traduire en gestes Drag and Drop.
-        const hammer = new Hammer(squareBeingDragged);
-        // L'utilisation d'une méthode de déplacement pour déplacer le carré sélectionné.
-        hammer.on('panmove', (e) => {
-            const deltaX = e.deltaX;
-            const deltaY = e.deltaY;
-            // Nous déplaçons alors le carré sélectionné en fonction des coordonnées x et y.
-            squareBeingDragged.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-        });
-        // Nous devons vérifier si le carré est bien déplacé et s'il est bien positionné.
-        const squareBeingDraggedId = parseInt(squareBeingDragged.getAttribute('data-id'))
-        const squareBeingReplacedId = parseInt(squareBeingReplaced.getAttribute('data-id'))
-    
-        currentColorArrangment[squareBeingReplacedId] = squareBeingDragged.getAttribute('src')
-        currentColorArrangment[squareBeingDraggedId] = squareBeingReplaced.getAttribute('src')
-    
-        const validMoves = [
-            squareBeingDraggedId - 1,
-            squareBeingDraggedId - width,
-            squareBeingDraggedId + 1,
-            squareBeingDraggedId + width
-        ]
-    
-        const validMove = validMoves.includes(squareBeingReplacedId)
-    
-        const isAColumnOfFour = checkForColumnOfFour()
-        const isARowOfFour = checkForRowOfFour()
-        const isAColumnOfThree = checkForColumnOfThree()
-        const isARowOfThree = checkForRowOfThree()
-    
-        if (squareBeingReplacedId &&
-            validMove &&
-            (isARowOfThree || isARowOfFour || isAColumnOfFour || isAColumnOfThree)) {
-            setSquareBeingDragged(null)
-            setSquareBeingReplaced(null)
-        } else {
-            currentColorArrangment[squareBeingReplacedId] = squareBeingReplaced.getAttribute('src')
-            currentColorArrangment[squareBeingDraggedId] = squareBeingDragged.getAttribute('src')
-            setCurrentColorArrangment([...currentColorArrangment])
-        }
-    }
     const dragEnd = () => {
-
+    
         const squareBeingDraggedId = parseInt(squareBeingDragged.getAttribute('data-id'))
         const squareBeingReplacedId = parseInt(squareBeingReplaced.getAttribute('data-id'))
 
@@ -247,13 +191,10 @@ const App = () => {
                         onDragLeave={(e) => e.preventDefault()}
                         onDrop={dragDrop}
                         onDragEnd={dragEnd}
-                        onTouchStart={handleTouchStart}
-                        onTouchMove={ handleTouchMove}
-                        onTouchEnd={handleTouchEnd}
                     />
                 ))}
             </div>
-            <ScoreBoard score={scoreDisplay} />
+            <ScoreBoard score={scoreDisplay}/>
         </div>
     );
 }
