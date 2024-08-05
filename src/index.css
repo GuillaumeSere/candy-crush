@@ -1,25 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&family=Kalnia+Glaze:wght@100..700&display=swap');
+
 *{
     margin: 0;
     padding: 0;
 }
 
 body{
-    background: url(./images/bg.png);
+    background: url(./images/bg.webp);
+    font-family: "Inconsolata", monospace;
 }
 .header{
-    color: rgb(222, 222, 222);
+    background: rgb(0, 0, 0);
     position: absolute;
     top: 0;
     height: 40px;
+    padding-bottom: 1rem;
     text-transform: uppercase;
-    background: rgba(83, 81, 81, 0.536);
     border-bottom: 1px solid white;
     width: 100%;
     text-align: center;
-    box-shadow: 0 10px 10px rgba(200, 200, 200, 0.5);
 }
 .header h2{
-    margin-top: .5rem;
+    font-weight: bold;
+    color:rgb(2, 254, 233);
+    font-size: 36px;
 }
 .app{
     display: flex;
@@ -31,8 +35,8 @@ body{
 .game{
     width: 560px;
     height: 560px;
-    border: 1px solid white;
-    background: rgba(45, 43, 43, 0.395);
+    border: 1px solid rgb(2, 254, 233);
+    background: rgba(45, 43, 43, 0.837);
     padding: 1rem;
     border-radius: 10px;
     display: flex;
@@ -45,12 +49,13 @@ body{
 .score-board{
     position: absolute;
     top: 0;
-    margin-top: 3.5rem;
-    color: rgb(201, 201, 201);
-    border: 1px solid white;
+    margin-top: 5rem;
+    font-size: 20px;
+    color: rgb(255, 255, 255);
+    border: 1px solid rgb(2, 254, 233);
     padding: 0 1rem;
     border-radius: 10px;
-    background: rgba(45, 43, 43, 0.395);
+    background: rgb(45, 43, 43);
 }
 
 
