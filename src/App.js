@@ -147,6 +147,27 @@ const App = () => {
 
     }
 
+    const touchStart = (e) => {
+        const touch = e.touches[0];
+        const target = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (target && target.tagName === 'IMG') {
+            setSquareBeingDragged(target);
+        }
+    }
+
+    const touchMove = (e) => {
+        e.preventDefault();
+    }
+
+    const touchEnd = (e) => {
+        const touch = e.changedTouches[0];
+        const target = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (target && target.tagName === 'IMG') {
+            setSquareBeingReplaced(target);
+        }
+        dragEnd();
+    }
+
     const createBoard = () => {
         const randomColorArrangment = []
         for (let i = 0; i < width * width; i++) {
@@ -191,6 +212,9 @@ const App = () => {
                         onDragLeave={(e) => e.preventDefault()}
                         onDrop={dragDrop}
                         onDragEnd={dragEnd}
+                        onTouchStart={touchStart}
+                        onTouchMove={touchMove}
+                        onTouchEnd={touchEnd}
                     />
                 ))}
             </div>
