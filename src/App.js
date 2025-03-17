@@ -215,6 +215,7 @@ const App = () => {
                         onTouchStart={touchStart}
                         onTouchMove={touchMove}
                         onTouchEnd={touchEnd}
+                        className="w-1/8 h-1/8"
                     />
                 ))}
             </div>

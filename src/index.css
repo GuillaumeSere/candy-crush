@@ -58,15 +58,25 @@ body{
     background: rgb(45, 43, 43);
 }
 
+@media (max-width:650px){
+    .game{
+        width: 320px;
+        height: 320px;
+    }
+    .game img{
+        width: 40px;
+        height: 40px;
+    }
+}
 
-@media (max-width: 400px){
+@media (max-width: 420px){
     .game{
         width: 280px;
         height: 280px;
         padding: .5rem;
     }
     .game img{
-        width: 32px;
-        height: 32px;
+        width: 35px;
+        height: 35px;
     }
 }
