@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import blueCandy from './images/blue-candy.png';
 import greenCandy from './images/green-candy.png';
 import orangeCandy from './images/orange-candy.png';
@@ -9,218 +9,455 @@ import blank from './images/blank.png';
 import ScoreBoard from "./components/ScoreBoard";
 
 const width = 8;
-const candyColors = [
-    blueCandy,
-    orangeCandy,
-    purpleCandy,
-    redCandy,
-    yellowCandy,
-    greenCandy
+const boardSize = width * width;
+const candyDetails = [
+    { src: blueCandy, name: "Bonbon bleu", accent: "#45c9ff" },
+    { src: orangeCandy, name: "Bonbon orange", accent: "#ff9a3d" },
+    { src: purpleCandy, name: "Bonbon violet", accent: "#b86bff" },
+    { src: redCandy, name: "Bonbon rouge", accent: "#ff5c7a" },
+    { src: yellowCandy, name: "Bonbon jaune", accent: "#ffd447" },
+    { src: greenCandy, name: "Bonbon vert", accent: "#59dc8f" }
 ];
+const candyColors = candyDetails.map((candy) => candy.src);
+const candyBySrc = candyDetails.reduce((candies, candy) => {
+    candies[candy.src] = candy;
+    return candies;
+}, {});
+
+const randomCandy = () => candyColors[Math.floor(Math.random() * candyColors.length)];
+
+const swapCandies = (board, sourceIndex, targetIndex) => {
+    const nextBoard = [...board];
+    const draggedCandy = nextBoard[sourceIndex];
+    nextBoard[sourceIndex] = nextBoard[targetIndex];
+    nextBoard[targetIndex] = draggedCandy;
+    return nextBoard;
+};
+
+const isAdjacent = (sourceIndex, targetIndex) => {
+    if (sourceIndex === null || targetIndex === null) return false;
+
+    const sourceRow = Math.floor(sourceIndex / width);
+    const targetRow = Math.floor(targetIndex / width);
+    const sourceColumn = sourceIndex % width;
+    const targetColumn = targetIndex % width;
+
+    return Math.abs(sourceRow - targetRow) + Math.abs(sourceColumn - targetColumn) === 1;
+};
+
+const findMatches = (board) => {
+    const matches = new Set();
+    const groups = [];
+
+    for (let row = 0; row < width; row++) {
+        let column = 0;
+
+        while (column < width) {
+            const start = row * width + column;
+            const candy = board[start];
+            let runLength = 1;
+
+            while (
+                column + runLength < width &&
+                candy !== blank &&
+                board[start + runLength] === candy
+            ) {
+                runLength++;
+            }
+
+            if (candy !== blank && runLength >= 3) {
+                const group = Array.from({ length: runLength }, (_, offset) => start + offset);
+                group.forEach((index) => matches.add(index));
+                groups.push(group);
+            }
+
+            column += runLength;
+        }
+    }
+
+    for (let column = 0; column < width; column++) {
+        let row = 0;
+
+        while (row < width) {
+            const start = row * width + column;
+            const candy = board[start];
+            let runLength = 1;
+
+            while (
+                row + runLength < width &&
+                candy !== blank &&
+                board[start + runLength * width] === candy
+            ) {
+                runLength++;
+            }
+
+            if (candy !== blank && runLength >= 3) {
+                const group = Array.from({ length: runLength }, (_, offset) => start + offset * width);
+                group.forEach((index) => matches.add(index));
+                groups.push(group);
+            }
+
+            row += runLength;
+        }
+    }
+
+    const longest = groups.reduce((longestGroup, group) => Math.max(longestGroup, group.length), 0);
+
+    return { matches, groups, longest };
+};
+
+const collapseBoard = (board) => {
+    const nextBoard = Array(boardSize).fill(blank);
+
+    for (let column = 0; column < width; column++) {
+        let writeIndex = boardSize - width + column;
+
+        for (let row = width - 1; row >= 0; row--) {
+            const readIndex = row * width + column;
+
+            if (board[readIndex] !== blank) {
+                nextBoard[writeIndex] = board[readIndex];
+                writeIndex -= width;
+            }
+        }
+
+        while (writeIndex >= 0) {
+            nextBoard[writeIndex] = randomCandy();
+            writeIndex -= width;
+        }
+    }
+
+    return nextBoard;
+};
+
+const buildFreshBoard = () => {
+    const board = [];
+
+    for (let index = 0; index < boardSize; index++) {
+        const availableCandies = candyColors.filter((candy) => {
+            const makesRowMatch =
+                index % width >= 2 &&
+                board[index - 1] === candy &&
+                board[index - 2] === candy;
+            const makesColumnMatch =
+                index >= width * 2 &&
+                board[index - width] === candy &&
+                board[index - width * 2] === candy;
+
+            return !makesRowMatch && !makesColumnMatch;
+        });
+
+        board.push(availableCandies[Math.floor(Math.random() * availableCandies.length)]);
+    }
+
+    return board;
+};
+
+const findHint = (board) => {
+    for (let index = 0; index < boardSize; index++) {
+        const neighbours = [];
+
+        if (index % width < width - 1) neighbours.push(index + 1);
+        if (index < boardSize - width) neighbours.push(index + width);
+
+        for (const neighbour of neighbours) {
+            const swappedBoard = swapCandies(board, index, neighbour);
+            const { matches } = findMatches(swappedBoard);
+
+            if (matches.size > 0) {
+                return [index, neighbour];
+            }
+        }
+    }
+
+    return [];
+};
+
+const buildPlayableBoard = () => {
+    let board = buildFreshBoard();
+    let attempts = 0;
+
+    while (findHint(board).length === 0 && attempts < 50) {
+        board = buildFreshBoard();
+        attempts++;
+    }
+
+    return board;
+};
 
 const App = () => {
 
-    const [currentColorArrangment, setCurrentColorArrangment] = useState([]);
-    const [squareBeingDragged, setSquareBeingDragged] = useState(null);
-    const [squareBeingReplaced, setSquareBeingReplaced] = useState(null);
-    const [scoreDisplay, setScoreDisplay] = useState(0)
-
-    const checkForColumnOfFour = () => {
-        for (let i = 0; i <= 39; i++) {
-            const columnOfFour = [i, i + width * 2, i + width * 3];
-            const decidedColor = currentColorArrangment[i]
-            const isBlank = currentColorArrangment[i] === blank
-
-            if (columnOfFour.every(square => currentColorArrangment[square] === decidedColor && !isBlank)) {
-                setScoreDisplay((score) => score + 4)
-                columnOfFour.forEach(square => currentColorArrangment[square] = blank)
-                return true
-            }
-        }
-    }
-
-    const checkForRowOfFour = () => {
-        for (let i = 0; i < 64; i++) {
-            const rowOfFour = [i, i + 1, i + 2, i + 3];
-            const decidedColor = currentColorArrangment[i]
-            const notValid = [5, 6, 7, 13, 14, 15, 21, 22, 23, 29, 30, 31, 37, 38, 39, 45, 46, 47, 53, 54, 55, 62, 63, 64]
-            const isBlank = currentColorArrangment[i] === blank
-
-            if (notValid.includes(i)) continue
-
-            if (rowOfFour.every(square => currentColorArrangment[square] === decidedColor && !isBlank )) {
-                setScoreDisplay((score) => score + 4)
-                rowOfFour.forEach(square => currentColorArrangment[square] = blank)
-                return true
-            }
-        }
-    }
-
-    const checkForColumnOfThree = () => {
-        for (let i = 0; i <= 47; i++) {
-            const columnOfThree = [i, i + width, i + width * 2];
-            const decidedColor = currentColorArrangment[i]
-            const isBlank = currentColorArrangment[i] === blank
-
-            if (columnOfThree.every(square => currentColorArrangment[square] === decidedColor && !isBlank)) {
-                setScoreDisplay((score) => score + 3)
-                columnOfThree.forEach(square => currentColorArrangment[square] = blank)
-                return true
-            }
-        }
-    }
-
-    const checkForRowOfThree = () => {
-        for (let i = 0; i < 64; i++) {
-            const rowOfThree = [i, i + 1, i + 2];
-            const decidedColor = currentColorArrangment[i]
-            const notValid = [6, 7, 14, 15, 22, 23, 30, 31, 38, 39, 46, 47, 54, 55, 63, 64]
-            const isBlank = currentColorArrangment[i] === blank
-
-            if (notValid.includes(i)) continue
-
-            if (rowOfThree.every(square => currentColorArrangment[square] === decidedColor && !isBlank)) {
-                setScoreDisplay((score) => score + 3)
-                rowOfThree.forEach(square => currentColorArrangment[square] = blank)
-                return true
-            }
-        }
-    }
-
-    const moveIntoSquareBelow = () => {
-        for (let i = 0; i <= 55; i++) {
-            const firstRow = [0, 1, 2, 3, 4, 5, 6, 7]
-            const isFirstRow = firstRow.includes(i)
-
-            if (isFirstRow && currentColorArrangment[i] === blank) {
-                let randomNumber = Math.floor(Math.random() * candyColors.length)
-                currentColorArrangment[i] = candyColors[randomNumber]
-            }
-
-            if ((currentColorArrangment[i + width]) === blank) {
-                currentColorArrangment[i + width] = currentColorArrangment[i]
-                currentColorArrangment[i] = blank
-            }
-        }
-    }
-
-    const dragStart = (e) => {
-        setSquareBeingDragged(e.target)
-    }
-
-    const dragDrop = (e) => {
-        setSquareBeingReplaced(e.target)
-    }
-
-    const dragEnd = () => {
-    
-        const squareBeingDraggedId = parseInt(squareBeingDragged.getAttribute('data-id'))
-        const squareBeingReplacedId = parseInt(squareBeingReplaced.getAttribute('data-id'))
-
-        currentColorArrangment[squareBeingReplacedId] = squareBeingDragged.getAttribute('src')
-        currentColorArrangment[squareBeingDraggedId] = squareBeingReplaced.getAttribute('src')
-
-        const validMoves = [
-            squareBeingDraggedId - 1,
-            squareBeingDraggedId - width,
-            squareBeingDraggedId + 1,
-            squareBeingDraggedId + width
-        ]
-
-        const validMove = validMoves.includes(squareBeingReplacedId)
-
-        const isAColumnOfFour = checkForColumnOfFour()
-        const isARowOfFour = checkForRowOfFour()
-        const isAColumnOfThree = checkForColumnOfThree()
-        const isARowOfThree = checkForRowOfThree()
-
-        if (squareBeingReplacedId &&
-            validMove &&
-            (isARowOfThree || isARowOfFour || isAColumnOfFour || isAColumnOfThree)) {
-            setSquareBeingDragged(null)
-            setSquareBeingReplaced(null)
-        } else {
-            currentColorArrangment[squareBeingReplacedId] = squareBeingReplaced.getAttribute('src')
-            currentColorArrangment[squareBeingDraggedId] = squareBeingDragged.getAttribute('src')
-            setCurrentColorArrangment([...currentColorArrangment])
-        }
-
-    }
-
-    const touchStart = (e) => {
-        const touch = e.touches[0];
-        const target = document.elementFromPoint(touch.clientX, touch.clientY);
-        if (target && target.tagName === 'IMG') {
-            setSquareBeingDragged(target);
-        }
-    }
-
-    const touchMove = (e) => {
-        e.preventDefault();
-    }
-
-    const touchEnd = (e) => {
-        const touch = e.changedTouches[0];
-        const target = document.elementFromPoint(touch.clientX, touch.clientY);
-        if (target && target.tagName === 'IMG') {
-            setSquareBeingReplaced(target);
-        }
-        dragEnd();
-    }
-
-    const createBoard = () => {
-        const randomColorArrangment = []
-        for (let i = 0; i < width * width; i++) {
-            const randomColor = candyColors[Math.floor(Math.random() * candyColors.length)];
-            randomColorArrangment.push(randomColor);
-        }
-        setCurrentColorArrangment(randomColorArrangment);
-    }
+    const [currentColorArrangement, setCurrentColorArrangement] = useState(() => buildPlayableBoard());
+    const [scoreDisplay, setScoreDisplay] = useState(0);
+    const [moves, setMoves] = useState(0);
+    const [streak, setStreak] = useState(0);
+    const [bestMatch, setBestMatch] = useState(0);
+    const [selectedSquare, setSelectedSquare] = useState(null);
+    const [matchedSquares, setMatchedSquares] = useState(new Set());
+    const [hintSquares, setHintSquares] = useState([]);
+    const [invalidSquares, setInvalidSquares] = useState(new Set());
+    const [isResolving, setIsResolving] = useState(false);
+    const [message, setMessage] = useState("Pret");
+    const currentBoard = useRef(currentColorArrangement);
+    const draggedSquare = useRef(null);
+    const droppedSquare = useRef(null);
+    const timers = useRef([]);
 
     useEffect(() => {
-        createBoard();
+        currentBoard.current = currentColorArrangement;
+    }, [currentColorArrangement]);
+
+    useEffect(() => {
+        return () => {
+            timers.current.forEach((timer) => clearTimeout(timer));
+        };
     }, []);
 
-    useEffect(() => {
-        const timer = setInterval(() => {
-            checkForColumnOfFour();
-            checkForRowOfFour();
-            checkForColumnOfThree();
-            checkForRowOfThree();
-            moveIntoSquareBelow();
-            setCurrentColorArrangment([...currentColorArrangment])
-        }, 100)
-        return () => clearInterval(timer)
-    }, [checkForColumnOfThree, checkForColumnOfFour, checkForRowOfThree, checkForRowOfFour, moveIntoSquareBelow, currentColorArrangment]);
+    const clearTimers = () => {
+        timers.current.forEach((timer) => clearTimeout(timer));
+        timers.current = [];
+    };
+
+    const schedule = (callback, delay) => {
+        const timer = setTimeout(() => {
+            timers.current = timers.current.filter((queuedTimer) => queuedTimer !== timer);
+            callback();
+        }, delay);
+
+        timers.current.push(timer);
+    };
+
+    const resolveBoard = (board, cascade = 1) => {
+        const { matches, longest } = findMatches(board);
+
+        if (matches.size === 0) {
+            const completedCascades = cascade - 1;
+
+            setMatchedSquares(new Set());
+            setStreak(completedCascades > 1 ? completedCascades : 0);
+
+            if (findHint(board).length === 0) {
+                setCurrentColorArrangement(buildPlayableBoard());
+                setMessage("Nouveau mix");
+            } else if (completedCascades > 1) {
+                setMessage(`Combo x${completedCascades}`);
+            }
+
+            setIsResolving(false);
+            return;
+        }
+
+        const matchedIndexes = new Set(matches);
+        setMatchedSquares(matchedIndexes);
+        setScoreDisplay((score) => score + matchedIndexes.size * cascade);
+        setBestMatch((best) => Math.max(best, longest));
+        setStreak(cascade);
+        setMessage(cascade > 1 ? `Cascade x${cascade}` : longest >= 5 ? "Mega match" : longest === 4 ? "Super match" : "Joli match");
+
+        schedule(() => {
+            const clearedBoard = board.map((candy, index) => (matchedIndexes.has(index) ? blank : candy));
+            setCurrentColorArrangement(clearedBoard);
+
+            schedule(() => {
+                const collapsedBoard = collapseBoard(clearedBoard);
+                setCurrentColorArrangement(collapsedBoard);
+                setMatchedSquares(new Set());
+
+                schedule(() => resolveBoard(collapsedBoard, cascade + 1), 220);
+            }, 120);
+        }, 320);
+    };
+
+    const attemptSwap = (sourceIndex, targetIndex) => {
+        if (isResolving || sourceIndex === null || targetIndex === null || sourceIndex === targetIndex) return;
+
+        setHintSquares([]);
+
+        if (!isAdjacent(sourceIndex, targetIndex)) {
+            setSelectedSquare(targetIndex);
+            setMessage("Case voisine");
+            return;
+        }
+
+        const boardBeforeMove = currentBoard.current;
+        const swappedBoard = swapCandies(boardBeforeMove, sourceIndex, targetIndex);
+        const { matches } = findMatches(swappedBoard);
+
+        setSelectedSquare(null);
+        setIsResolving(true);
+        setCurrentColorArrangement(swappedBoard);
+
+        if (matches.size === 0) {
+            setMessage("Pas de match");
+            setInvalidSquares(new Set([sourceIndex, targetIndex]));
+
+            schedule(() => {
+                setCurrentColorArrangement(boardBeforeMove);
+                setInvalidSquares(new Set());
+                setIsResolving(false);
+            }, 380);
+            return;
+        }
+
+        setMoves((moveCount) => moveCount + 1);
+        resolveBoard(swappedBoard);
+    };
+
+    const handleCandyClick = (index) => {
+        if (isResolving) return;
+
+        if (selectedSquare === null) {
+            setSelectedSquare(index);
+            return;
+        }
+
+        if (selectedSquare === index) {
+            setSelectedSquare(null);
+            return;
+        }
+
+        attemptSwap(selectedSquare, index);
+    };
+
+    const dragStart = (event, index) => {
+        if (isResolving) return;
+
+        event.dataTransfer.effectAllowed = "move";
+        draggedSquare.current = index;
+        setSelectedSquare(index);
+    };
+
+    const dragDrop = (event, index) => {
+        event.preventDefault();
+        droppedSquare.current = index;
+    };
+
+    const dragEnd = () => {
+        attemptSwap(draggedSquare.current, droppedSquare.current);
+        draggedSquare.current = null;
+        droppedSquare.current = null;
+    };
+
+    const restartGame = () => {
+        clearTimers();
+        setCurrentColorArrangement(buildPlayableBoard());
+        setScoreDisplay(0);
+        setMoves(0);
+        setStreak(0);
+        setBestMatch(0);
+        setSelectedSquare(null);
+        setMatchedSquares(new Set());
+        setHintSquares([]);
+        setInvalidSquares(new Set());
+        setIsResolving(false);
+        setMessage("Pret");
+    };
+
+    const shuffleBoard = () => {
+        if (isResolving) return;
+
+        clearTimers();
+        setCurrentColorArrangement(buildPlayableBoard());
+        setSelectedSquare(null);
+        setMatchedSquares(new Set());
+        setHintSquares([]);
+        setInvalidSquares(new Set());
+        setMessage("Plateau mixe");
+    };
+
+    const showHint = () => {
+        if (isResolving) return;
+
+        const hint = findHint(currentBoard.current);
+
+        if (hint.length === 0) {
+            shuffleBoard();
+            return;
+        }
+
+        setHintSquares(hint);
+        setMessage("Indice");
+        schedule(() => setHintSquares([]), 1300);
+    };
+
+    const level = Math.floor(scoreDisplay / 120) + 1;
+    const progress = Math.min(100, Math.round(((scoreDisplay % 120) / 120) * 100));
 
     return (
-        <div className="app">
-            <div className="header">
-                <h2>Candy Crush</h2>
-            </div>
-            <div className="game">
-                {currentColorArrangment.map((candyColor, index) => (
-                    <img
-                        key={index}
-                        src={candyColor}
-                        alt={candyColor}
-                        data-id={index}
-                        draggable={true}
-                        onDragStart={dragStart}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDragEnter={(e) => e.preventDefault()}
-                        onDragLeave={(e) => e.preventDefault()}
-                        onDrop={dragDrop}
-                        onDragEnd={dragEnd}
-                        onTouchStart={touchStart}
-                        onTouchMove={touchMove}
-                        onTouchEnd={touchEnd}
-                        className="w-1/8 h-1/8"
+        <main className="app-shell">
+            <section className="game-stage" aria-label="Candy Crush">
+                <header className="topbar">
+                    <div className="title-block">
+                        <p>Sweet arcade</p>
+                        <h1>Candy Crush</h1>
+                    </div>
+                    <div className="actions" aria-label="Actions de partie">
+                        <button type="button" className="action-button" onClick={showHint} disabled={isResolving}>
+                            Indice
+                        </button>
+                        <button type="button" className="action-button" onClick={shuffleBoard} disabled={isResolving}>
+                            Melanger
+                        </button>
+                        <button type="button" className="action-button action-button-primary" onClick={restartGame}>
+                            Rejouer
+                        </button>
+                    </div>
+                </header>
+
+                <div className="play-layout">
+                    <div className="board-wrap">
+                        <div className={`game-board ${isResolving ? "is-resolving" : ""}`} aria-label="Plateau de jeu">
+                            {currentColorArrangement.map((candyColor, index) => {
+                                const candy = candyBySrc[candyColor] || { name: "Case vide", accent: "#ffffff" };
+                                const classNames = [
+                                    "candy-cell",
+                                    selectedSquare === index ? "is-selected" : "",
+                                    matchedSquares.has(index) ? "is-matched" : "",
+                                    invalidSquares.has(index) ? "is-invalid" : "",
+                                    hintSquares.includes(index) ? "is-hint" : "",
+                                    isResolving ? "is-disabled" : ""
+                                ].filter(Boolean).join(" ");
+
+                                return (
+                                    <button
+                                        key={`${index}-${candyColor}`}
+                                        type="button"
+                                        className={classNames}
+                                        style={{
+                                            "--candy-accent": candy.accent,
+                                            "--cell-delay": `${(index % width) * 12}ms`
+                                        }}
+                                        aria-label={`${candy.name} ${index + 1}`}
+                                        data-id={index}
+                                        draggable={!isResolving}
+                                        onClick={() => handleCandyClick(index)}
+                                        onDragStart={(event) => dragStart(event, index)}
+                                        onDragOver={(event) => event.preventDefault()}
+                                        onDragEnter={(event) => event.preventDefault()}
+                                        onDrop={(event) => dragDrop(event, index)}
+                                        onDragEnd={dragEnd}
+                                    >
+                                        <img src={candyColor} alt="" aria-hidden="true" draggable={false} />
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <div className={`status-bubble ${message ? "is-visible" : ""}`} aria-live="polite">
+                            {message}
+                        </div>
+                    </div>
+
+                    <ScoreBoard
+                        score={scoreDisplay}
+                        moves={moves}
+                        streak={streak}
+                        bestMatch={bestMatch}
+                        level={level}
+                        progress={progress}
                     />
-                ))}
-            </div>
-            <ScoreBoard score={scoreDisplay}/>
-        </div>
+                </div>
+            </section>
+        </main>
     );
 }
 
