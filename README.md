@@ -1,5 +1,7 @@
 # Candy Crush
 
 
-![20230215132506](https://user-images.githubusercontent.com/75996200/219026930-2b23873a-d751-4d50-810b-d1d4861aa076.png)
+
+
+![20240805162000](https://github.com/user-attachments/assets/7e080c8d-5197-45f0-bf4b-6542db263975)
 
