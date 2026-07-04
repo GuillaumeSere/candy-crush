@@ -130,6 +130,10 @@ button {
     width: min(68vh, 650px, 100%);
     position: relative;
     justify-self: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(8px, 1.4vw, 14px);
 }
 
 .game-board {
@@ -264,10 +268,8 @@ button {
 
 .status-bubble {
     min-width: 130px;
-    position: absolute;
-    left: 50%;
-    bottom: clamp(12px, 2.2vw, 20px);
-    transform: translate(-50%, 16px) scale(0.96);
+    position: static;
+    transform: translateY(8px) scale(0.96);
     border: 1px solid rgba(255, 255, 255, 0.28);
     border-radius: 8px;
     padding: 10px 16px;
@@ -283,7 +285,7 @@ button {
 
 .status-bubble.is-visible {
     opacity: 1;
-    transform: translate(-50%, 0) scale(1);
+    transform: translateY(0) scale(1);
 }
 
 .score-board {
