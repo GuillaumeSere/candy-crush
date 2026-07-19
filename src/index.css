@@ -288,6 +288,47 @@ button {
     transform: translateY(0) scale(1);
 }
 
+.level-toast {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: min(280px, 78vw);
+    transform: translate(-50%, -44%) scale(0.9);
+    display: grid;
+    gap: 4px;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+    padding: 18px 22px;
+    background:
+        linear-gradient(135deg, rgba(55, 230, 180, 0.92), rgba(255, 209, 102, 0.92), rgba(255, 95, 143, 0.92)),
+        rgba(24, 20, 30, 0.94);
+    color: #230817;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+    transition: opacity 180ms ease, transform 180ms ease;
+    z-index: 3;
+}
+
+.level-toast.is-visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    animation: levelToastPop 520ms ease both;
+}
+
+.level-toast span {
+    font-size: 0.9rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.level-toast strong {
+    font-size: clamp(1.8rem, 6vw, 3rem);
+    line-height: 1;
+}
+
 .score-board {
     display: grid;
     grid-template-columns: 1fr;
@@ -429,6 +470,18 @@ button {
     to {
         opacity: 0;
         transform: translateX(70%) rotate(12deg);
+    }
+}
+
+@keyframes levelToastPop {
+    0% {
+        transform: translate(-50%, -44%) scale(0.82);
+    }
+    58% {
+        transform: translate(-50%, -52%) scale(1.08);
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1);
     }
 }
 

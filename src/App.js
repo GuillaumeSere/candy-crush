@@ -10,6 +10,7 @@ import ScoreBoard from "./components/ScoreBoard";
 
 const width = 8;
 const boardSize = width * width;
+const savedGameKey = "candy-crush-current-game";
 const candyDetails = [
     { src: blueCandy, name: "Bonbon bleu", accent: "#45c9ff" },
     { src: orangeCandy, name: "Bonbon orange", accent: "#ff9a3d" },
@@ -185,20 +186,49 @@ const buildPlayableBoard = () => {
     return board;
 };
 
+const isSavedBoardValid = (board) => (
+    Array.isArray(board) &&
+    board.length === boardSize &&
+    board.every((candy) => candyColors.includes(candy))
+);
+
+const loadSavedGame = () => {
+    try {
+        const savedGame = JSON.parse(localStorage.getItem(savedGameKey));
+
+        if (!savedGame || !isSavedBoardValid(savedGame.board)) {
+            return null;
+        }
+
+        return {
+            board: savedGame.board,
+            score: Number.isFinite(savedGame.score) ? savedGame.score : 0,
+            moves: Number.isFinite(savedGame.moves) ? savedGame.moves : 0,
+            streak: Number.isFinite(savedGame.streak) ? savedGame.streak : 0,
+            bestMatch: Number.isFinite(savedGame.bestMatch) ? savedGame.bestMatch : 0
+        };
+    } catch {
+        return null;
+    }
+};
+
 const App = () => {
 
-    const [currentColorArrangement, setCurrentColorArrangement] = useState(() => buildPlayableBoard());
-    const [scoreDisplay, setScoreDisplay] = useState(0);
-    const [moves, setMoves] = useState(0);
-    const [streak, setStreak] = useState(0);
-    const [bestMatch, setBestMatch] = useState(0);
+    const savedGame = useRef(loadSavedGame());
+    const [currentColorArrangement, setCurrentColorArrangement] = useState(() => savedGame.current?.board || buildPlayableBoard());
+    const [scoreDisplay, setScoreDisplay] = useState(() => savedGame.current?.score || 0);
+    const [moves, setMoves] = useState(() => savedGame.current?.moves || 0);
+    const [streak, setStreak] = useState(() => savedGame.current?.streak || 0);
+    const [bestMatch, setBestMatch] = useState(() => savedGame.current?.bestMatch || 0);
     const [selectedSquare, setSelectedSquare] = useState(null);
     const [matchedSquares, setMatchedSquares] = useState(new Set());
     const [hintSquares, setHintSquares] = useState([]);
     const [invalidSquares, setInvalidSquares] = useState(new Set());
     const [isResolving, setIsResolving] = useState(false);
-    const [message, setMessage] = useState("Pret");
+    const [message, setMessage] = useState(savedGame.current ? "Partie restauree" : "Pret");
+    const [levelNotification, setLevelNotification] = useState(null);
     const currentBoard = useRef(currentColorArrangement);
+    const previousLevel = useRef(Math.floor(scoreDisplay / 120) + 1);
     const draggedSquare = useRef(null);
     const droppedSquare = useRef(null);
     const timers = useRef([]);
@@ -206,6 +236,34 @@ const App = () => {
     useEffect(() => {
         currentBoard.current = currentColorArrangement;
     }, [currentColorArrangement]);
+
+    useEffect(() => {
+        const gameToSave = {
+            board: currentColorArrangement,
+            score: scoreDisplay,
+            moves,
+            streak,
+            bestMatch
+        };
+
+        try {
+            localStorage.setItem(savedGameKey, JSON.stringify(gameToSave));
+        } catch {
+            setMessage("Sauvegarde indisponible");
+        }
+    }, [currentColorArrangement, scoreDisplay, moves, streak, bestMatch]);
+
+    useEffect(() => {
+        const nextLevel = Math.floor(scoreDisplay / 120) + 1;
+
+        if (nextLevel > previousLevel.current) {
+            setLevelNotification(`Niveau ${nextLevel}`);
+            setMessage(`Niveau ${nextLevel}`);
+            schedule(() => setLevelNotification(null), 1800);
+        }
+
+        previousLevel.current = nextLevel;
+    }, [scoreDisplay]);
 
     useEffect(() => {
         return () => {
@@ -340,6 +398,8 @@ const App = () => {
 
     const restartGame = () => {
         clearTimers();
+        localStorage.removeItem(savedGameKey);
+        previousLevel.current = 1;
         setCurrentColorArrangement(buildPlayableBoard());
         setScoreDisplay(0);
         setMoves(0);
@@ -350,6 +410,7 @@ const App = () => {
         setHintSquares([]);
         setInvalidSquares(new Set());
         setIsResolving(false);
+        setLevelNotification(null);
         setMessage("Pret");
     };
 
@@ -444,6 +505,10 @@ const App = () => {
                         </div>
                         <div className={`status-bubble ${message ? "is-visible" : ""}`} aria-live="polite">
                             {message}
+                        </div>
+                        <div className={`level-toast ${levelNotification ? "is-visible" : ""}`} aria-live="assertive">
+                            <span>Bravo !</span>
+                            <strong>{levelNotification}</strong>
                         </div>
                     </div>
 
