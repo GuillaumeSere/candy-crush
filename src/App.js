@@ -24,9 +24,36 @@ const candyBySrc = candyDetails.reduce((candies, candy) => {
     candies[candy.src] = candy;
     return candies;
 }, {});
+const giftCatalog = [
+    { level: 5, name: "Coffret bleu", image: blueCandy },
+    { level: 10, name: "Tresor vert", image: greenCandy },
+    { level: 15, name: "Bonus orange", image: orangeCandy },
+    { level: 20, name: "Cristal violet", image: purpleCandy },
+    { level: 25, name: "Rubis sucre", image: redCandy },
+    { level: 30, name: "Etoile doree", image: yellowCandy }
+];
 
 const randomCandy = () => candyColors[Math.floor(Math.random() * candyColors.length)];
 
+// Ajoute un cadeau tous les 5 niveaux, en reutilisant le catalogue en boucle.
+const buildGiftsForLevel = (level) => {
+    const giftCount = Math.floor(level / 5);
+
+    return Array.from({ length: giftCount }, (_, index) => {
+        const catalogGift = giftCatalog[index % giftCatalog.length];
+        const rewardLevel = (index + 1) * 5;
+
+        return {
+            ...catalogGift,
+            id: `gift-${rewardLevel}`,
+            level: rewardLevel
+        };
+    });
+};
+
+const getNextGiftLevel = (level) => Math.ceil((level + 1) / 5) * 5;
+
+// Retourne une nouvelle grille avec deux cases inversees.
 const swapCandies = (board, sourceIndex, targetIndex) => {
     const nextBoard = [...board];
     const draggedCandy = nextBoard[sourceIndex];
@@ -35,6 +62,7 @@ const swapCandies = (board, sourceIndex, targetIndex) => {
     return nextBoard;
 };
 
+// Deux cases sont voisines si elles se touchent horizontalement ou verticalement.
 const isAdjacent = (sourceIndex, targetIndex) => {
     if (sourceIndex === null || targetIndex === null) return false;
 
@@ -46,10 +74,12 @@ const isAdjacent = (sourceIndex, targetIndex) => {
     return Math.abs(sourceRow - targetRow) + Math.abs(sourceColumn - targetColumn) === 1;
 };
 
+// Parcourt la grille pour trouver tous les groupes de 3 bonbons ou plus.
 const findMatches = (board) => {
     const matches = new Set();
     const groups = [];
 
+    // Recherche des alignements horizontaux, ligne par ligne.
     for (let row = 0; row < width; row++) {
         let column = 0;
 
@@ -76,6 +106,7 @@ const findMatches = (board) => {
         }
     }
 
+    // Recherche des alignements verticaux, colonne par colonne.
     for (let column = 0; column < width; column++) {
         let row = 0;
 
@@ -107,6 +138,7 @@ const findMatches = (board) => {
     return { matches, groups, longest };
 };
 
+// Fait tomber les bonbons dans chaque colonne et remplit le haut avec de nouveaux bonbons.
 const collapseBoard = (board) => {
     const nextBoard = Array(boardSize).fill(blank);
 
@@ -131,6 +163,7 @@ const collapseBoard = (board) => {
     return nextBoard;
 };
 
+// Cree une grille sans match deja present, pour que la partie commence proprement.
 const buildFreshBoard = () => {
     const board = [];
 
@@ -154,6 +187,7 @@ const buildFreshBoard = () => {
     return board;
 };
 
+// Cherche un mouvement jouable en testant les echanges avec les voisins de droite et du bas.
 const findHint = (board) => {
     for (let index = 0; index < boardSize; index++) {
         const neighbours = [];
@@ -174,6 +208,7 @@ const findHint = (board) => {
     return [];
 };
 
+// Reconstruit la grille tant qu'aucun mouvement possible n'a ete trouve.
 const buildPlayableBoard = () => {
     let board = buildFreshBoard();
     let attempts = 0;
@@ -186,12 +221,14 @@ const buildPlayableBoard = () => {
     return board;
 };
 
+// Evite de restaurer une sauvegarde incomplete ou incompatible avec les bonbons actuels.
 const isSavedBoardValid = (board) => (
     Array.isArray(board) &&
     board.length === boardSize &&
     board.every((candy) => candyColors.includes(candy))
 );
 
+// Recupere la partie depuis localStorage, avec des valeurs par defaut si besoin.
 const loadSavedGame = () => {
     try {
         const savedGame = JSON.parse(localStorage.getItem(savedGameKey));
@@ -227,6 +264,7 @@ const App = () => {
     const [isResolving, setIsResolving] = useState(false);
     const [message, setMessage] = useState(savedGame.current ? "Partie restauree" : "Pret");
     const [levelNotification, setLevelNotification] = useState(null);
+    const [giftNotification, setGiftNotification] = useState(null);
     const currentBoard = useRef(currentColorArrangement);
     const previousLevel = useRef(Math.floor(scoreDisplay / 120) + 1);
     const draggedSquare = useRef(null);
@@ -234,10 +272,12 @@ const App = () => {
     const timers = useRef([]);
 
     useEffect(() => {
+        // Garde une reference toujours a jour pour les handlers et timers asynchrones.
         currentBoard.current = currentColorArrangement;
     }, [currentColorArrangement]);
 
     useEffect(() => {
+        // Sauvegarde automatiquement la progression apres chaque changement important.
         const gameToSave = {
             board: currentColorArrangement,
             score: scoreDisplay,
@@ -254,12 +294,22 @@ const App = () => {
     }, [currentColorArrangement, scoreDisplay, moves, streak, bestMatch]);
 
     useEffect(() => {
+        // Un niveau correspond a 120 points, avec une notification au passage de palier.
         const nextLevel = Math.floor(scoreDisplay / 120) + 1;
 
         if (nextLevel > previousLevel.current) {
             setLevelNotification(`Niveau ${nextLevel}`);
             setMessage(`Niveau ${nextLevel}`);
             schedule(() => setLevelNotification(null), 1800);
+
+            if (nextLevel % 5 === 0) {
+                const availableGifts = buildGiftsForLevel(nextLevel);
+                const unlockedGift = availableGifts[availableGifts.length - 1];
+
+                setGiftNotification(unlockedGift);
+                setMessage(`Cadeau: ${unlockedGift.name}`);
+                schedule(() => setGiftNotification(null), 2400);
+            }
         }
 
         previousLevel.current = nextLevel;
@@ -272,11 +322,13 @@ const App = () => {
     }, []);
 
     const clearTimers = () => {
+        // Annule les animations en attente lors d'un reset ou d'un melange.
         timers.current.forEach((timer) => clearTimeout(timer));
         timers.current = [];
     };
 
     const schedule = (callback, delay) => {
+        // Centralise les timeouts pour pouvoir les nettoyer proprement.
         const timer = setTimeout(() => {
             timers.current = timers.current.filter((queuedTimer) => queuedTimer !== timer);
             callback();
@@ -285,10 +337,12 @@ const App = () => {
         timers.current.push(timer);
     };
 
+    // Resout les matchs, applique le score, puis relance la resolution si une cascade apparait.
     const resolveBoard = (board, cascade = 1) => {
         const { matches, longest } = findMatches(board);
 
         if (matches.size === 0) {
+            // Quand la grille est stabilisee, on verifie qu'elle contient encore un coup possible.
             const completedCascades = cascade - 1;
 
             setMatchedSquares(new Set());
@@ -312,6 +366,7 @@ const App = () => {
         setStreak(cascade);
         setMessage(cascade > 1 ? `Cascade x${cascade}` : longest >= 5 ? "Mega match" : longest === 4 ? "Super match" : "Joli match");
 
+        // Sequence visuelle: faire disparaitre, laisser tomber, puis chercher les cascades.
         schedule(() => {
             const clearedBoard = board.map((candy, index) => (matchedIndexes.has(index) ? blank : candy));
             setCurrentColorArrangement(clearedBoard);
@@ -326,6 +381,7 @@ const App = () => {
         }, 320);
     };
 
+    // Tente un echange et l'annule si le mouvement ne cree aucun match.
     const attemptSwap = (sourceIndex, targetIndex) => {
         if (isResolving || sourceIndex === null || targetIndex === null || sourceIndex === targetIndex) return;
 
@@ -362,6 +418,7 @@ const App = () => {
     };
 
     const handleCandyClick = (index) => {
+        // Premier clic: selection. Deuxieme clic: tentative d'echange avec la case choisie.
         if (isResolving) return;
 
         if (selectedSquare === null) {
@@ -378,6 +435,7 @@ const App = () => {
     };
 
     const dragStart = (event, index) => {
+        // Le drag and drop partage la meme logique de validation que le clic.
         if (isResolving) return;
 
         event.dataTransfer.effectAllowed = "move";
@@ -397,6 +455,7 @@ const App = () => {
     };
 
     const restartGame = () => {
+        // Remet toute la partie dans son etat initial et supprime la sauvegarde.
         clearTimers();
         localStorage.removeItem(savedGameKey);
         previousLevel.current = 1;
@@ -411,10 +470,12 @@ const App = () => {
         setInvalidSquares(new Set());
         setIsResolving(false);
         setLevelNotification(null);
+        setGiftNotification(null);
         setMessage("Pret");
     };
 
     const shuffleBoard = () => {
+        // Melange manuel: on repart d'une grille jouable sans toucher au score.
         if (isResolving) return;
 
         clearTimers();
@@ -427,6 +488,7 @@ const App = () => {
     };
 
     const showHint = () => {
+        // Affiche temporairement deux cases dont l'echange produira un match.
         if (isResolving) return;
 
         const hint = findHint(currentBoard.current);
@@ -443,6 +505,9 @@ const App = () => {
 
     const level = Math.floor(scoreDisplay / 120) + 1;
     const progress = Math.min(100, Math.round(((scoreDisplay % 120) / 120) * 100));
+    const unlockedGifts = buildGiftsForLevel(level);
+    const latestGift = unlockedGifts[unlockedGifts.length - 1] || null;
+    const nextGiftLevel = getNextGiftLevel(level);
 
     return (
         <main className="app-shell">
@@ -510,6 +575,15 @@ const App = () => {
                             <span>Bravo !</span>
                             <strong>{levelNotification}</strong>
                         </div>
+                        <div className={`gift-toast ${giftNotification ? "is-visible" : ""}`} aria-live="assertive">
+                            {giftNotification && (
+                                <>
+                                    <img src={giftNotification.image} alt="" aria-hidden="true" />
+                                    <span>Nouveau cadeau</span>
+                                    <strong>{giftNotification.name}</strong>
+                                </>
+                            )}
+                        </div>
                     </div>
 
                     <ScoreBoard
@@ -519,6 +593,9 @@ const App = () => {
                         bestMatch={bestMatch}
                         level={level}
                         progress={progress}
+                        gifts={unlockedGifts}
+                        latestGift={latestGift}
+                        nextGiftLevel={nextGiftLevel}
                     />
                 </div>
             </section>

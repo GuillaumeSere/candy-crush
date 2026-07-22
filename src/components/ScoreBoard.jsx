@@ -1,4 +1,5 @@
-const ScoreBoard = ({ score, moves, streak, bestMatch, level, progress }) => {
+const ScoreBoard = ({ score, moves, streak, bestMatch, level, progress, gifts, latestGift, nextGiftLevel }) => {
+  // Une liste unique permet d'afficher les tuiles de statistiques avec le meme rendu.
   const stats = [
     { label: "Score", value: score },
     { label: "Coups", value: moves },
@@ -23,6 +24,46 @@ const ScoreBoard = ({ score, moves, streak, bestMatch, level, progress }) => {
         <div className="level-track" aria-hidden="true">
           <span style={{ width: `${progress}%` }} />
         </div>
+      </div>
+
+      <div className="gift-panel">
+        <div className="gift-panel-header">
+          <span>Cadeaux</span>
+          <strong>{gifts.length}</strong>
+        </div>
+
+        <div className="latest-gift">
+          {latestGift ? (
+            <>
+              <img src={latestGift.image} alt="" aria-hidden="true" />
+              <div>
+                <span>Dernier cadeau</span>
+                <strong>{latestGift.name}</strong>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="gift-placeholder" aria-hidden="true">?</div>
+              <div>
+                <span>Prochain cadeau</span>
+                <strong>Niveau {nextGiftLevel}</strong>
+              </div>
+            </>
+          )}
+        </div>
+
+        {gifts.length > 0 && (
+          <div className="gift-list" aria-label="Cadeaux debloques">
+            {gifts.map((gift) => (
+              <div className="gift-badge" key={gift.id} title={`${gift.name} - niveau ${gift.level}`}>
+                <img src={gift.image} alt="" aria-hidden="true" />
+                <span>{gift.level}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <p>Prochain au niveau {nextGiftLevel}</p>
       </div>
     </aside>
   );
