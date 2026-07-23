@@ -24,13 +24,37 @@ const candyBySrc = candyDetails.reduce((candies, candy) => {
     candies[candy.src] = candy;
     return candies;
 }, {});
+
+const createGiftImage = (accent, label) => {
+    const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" role="img" aria-label="${label}">
+            <defs>
+                <linearGradient id="giftFrame" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.94" />
+                    <stop offset="100%" stop-color="${accent}" stop-opacity="0.35" />
+                </linearGradient>
+            </defs>
+            <rect x="8" y="8" width="104" height="104" rx="24" fill="url(#giftFrame)" stroke="${accent}" stroke-width="4" />
+            <rect x="25" y="32" width="70" height="56" rx="18" fill="${accent}" opacity="0.95" />
+            <rect x="27" y="34" width="66" height="52" rx="16" fill="#ffffff" opacity="0.18" />
+            <path d="M43 46c0-8 7-14 15-14s15 6 15 14c0 8-7 10-15 18-8-8-15-10-15-18Z" fill="#ffffff" opacity="0.92" />
+            <path d="M77 46c0-8 7-14 15-14s15 6 15 14c0 8-7 10-15 18-8-8-15-10-15-18Z" fill="#ffffff" opacity="0.92" />
+            <path d="M57 56h6v20h-6zM67 56h6v20h-6zM49 74h28v6H49z" fill="#ffffff" opacity="0.86" />
+            <circle cx="60" cy="88" r="7" fill="#ffffff" opacity="0.88" />
+            <text x="60" y="104" text-anchor="middle" font-size="10" font-family="Arial, Helvetica, sans-serif" fill="#351a53" font-weight="700">CADEAU</text>
+        </svg>
+    `;
+
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+};
+
 const giftCatalog = [
-    { level: 5, name: "Coffret bleu", image: blueCandy },
-    { level: 10, name: "Tresor vert", image: greenCandy },
-    { level: 15, name: "Bonus orange", image: orangeCandy },
-    { level: 20, name: "Cristal violet", image: purpleCandy },
-    { level: 25, name: "Rubis sucre", image: redCandy },
-    { level: 30, name: "Etoile doree", image: yellowCandy }
+    { level: 5, name: "Coffret bleu", image: createGiftImage("#45c9ff", "Coffret bleu") },
+    { level: 10, name: "Tresor vert", image: createGiftImage("#59dc8f", "Tresor vert") },
+    { level: 15, name: "Bonus orange", image: createGiftImage("#ff9a3d", "Bonus orange") },
+    { level: 20, name: "Cristal violet", image: createGiftImage("#b86bff", "Cristal violet") },
+    { level: 25, name: "Rubis sucre", image: createGiftImage("#ff5c7a", "Rubis sucre") },
+    { level: 30, name: "Etoile doree", image: createGiftImage("#ffd447", "Etoile doree") }
 ];
 
 const randomCandy = () => candyColors[Math.floor(Math.random() * candyColors.length)];
