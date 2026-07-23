@@ -1,4 +1,4 @@
-const ScoreBoard = ({ score, moves, streak, bestMatch, level, progress, gifts, latestGift, nextGiftLevel }) => {
+const ScoreBoard = ({ score, moves, streak, bestMatch, level, progress, gifts, latestGift, nextGiftLevel, claimedGiftIds, onClaimGift }) => {
   // Une liste unique permet d'afficher les tuiles de statistiques avec le meme rendu.
   const stats = [
     { label: "Score", value: score },
@@ -54,12 +54,24 @@ const ScoreBoard = ({ score, moves, streak, bestMatch, level, progress, gifts, l
 
         {gifts.length > 0 && (
           <div className="gift-list" aria-label="Cadeaux debloques">
-            {gifts.map((gift) => (
-              <div className="gift-badge" key={gift.id} title={`${gift.name} - niveau ${gift.level}`}>
-                <img src={gift.image} alt="" aria-hidden="true" />
-                <span>{gift.level}</span>
-              </div>
-            ))}
+            {gifts.map((gift) => {
+              const isClaimed = claimedGiftIds.includes(gift.id);
+
+              return (
+                <button
+                  type="button"
+                  className={`gift-badge ${isClaimed ? "is-claimed" : ""}`}
+                  key={gift.id}
+                  title={`${gift.name} - niveau ${gift.level} - +${gift.rewardPoints} points`}
+                  onClick={() => onClaimGift(gift.id)}
+                  disabled={isClaimed}
+                >
+                  <img src={gift.image} alt="" aria-hidden="true" />
+                  <span>{gift.level}</span>
+                  <small>{isClaimed ? "OK" : `+${gift.rewardPoints}`}</small>
+                </button>
+              );
+            })}
           </div>
         )}
 

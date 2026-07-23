@@ -502,6 +502,19 @@ button {
     border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.09);
+    color: inherit;
+    cursor: pointer;
+    transition: transform 160ms ease, filter 160ms ease, opacity 160ms ease;
+}
+
+.gift-badge:hover:not(:disabled) {
+    transform: translateY(-2px);
+    filter: brightness(1.08);
+}
+
+.gift-badge:disabled {
+    cursor: default;
+    opacity: 0.78;
 }
 
 .gift-badge img {
@@ -522,6 +535,23 @@ button {
     font-size: 0.68rem;
     font-weight: 900;
     text-align: center;
+}
+
+.gift-badge small {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    border-radius: 999px;
+    padding: 2px 5px;
+    background: rgba(36, 12, 47, 0.86);
+    color: #ffffff;
+    font-size: 0.6rem;
+    font-weight: 900;
+}
+
+.gift-badge.is-claimed {
+    background: rgba(89, 220, 143, 0.22);
+    border-color: rgba(89, 220, 143, 0.68);
 }
 
 .gift-panel p {

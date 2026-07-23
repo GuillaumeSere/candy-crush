@@ -34,6 +34,7 @@ const giftCatalog = [
 ];
 
 const randomCandy = () => candyColors[Math.floor(Math.random() * candyColors.length)];
+const getGiftRewardPoints = (giftIndex) => (giftIndex + 1) * 50;
 
 // Ajoute un cadeau tous les 5 niveaux, en reutilisant le catalogue en boucle.
 const buildGiftsForLevel = (level) => {
@@ -46,7 +47,8 @@ const buildGiftsForLevel = (level) => {
         return {
             ...catalogGift,
             id: `gift-${rewardLevel}`,
-            level: rewardLevel
+            level: rewardLevel,
+            rewardPoints: getGiftRewardPoints(index)
         };
     });
 };
@@ -242,7 +244,8 @@ const loadSavedGame = () => {
             score: Number.isFinite(savedGame.score) ? savedGame.score : 0,
             moves: Number.isFinite(savedGame.moves) ? savedGame.moves : 0,
             streak: Number.isFinite(savedGame.streak) ? savedGame.streak : 0,
-            bestMatch: Number.isFinite(savedGame.bestMatch) ? savedGame.bestMatch : 0
+            bestMatch: Number.isFinite(savedGame.bestMatch) ? savedGame.bestMatch : 0,
+            claimedGiftIds: Array.isArray(savedGame.claimedGiftIds) ? savedGame.claimedGiftIds : []
         };
     } catch {
         return null;
@@ -265,6 +268,7 @@ const App = () => {
     const [message, setMessage] = useState(savedGame.current ? "Partie restauree" : "Pret");
     const [levelNotification, setLevelNotification] = useState(null);
     const [giftNotification, setGiftNotification] = useState(null);
+    const [claimedGiftIds, setClaimedGiftIds] = useState(() => savedGame.current?.claimedGiftIds || []);
     const currentBoard = useRef(currentColorArrangement);
     const previousLevel = useRef(Math.floor(scoreDisplay / 120) + 1);
     const draggedSquare = useRef(null);
@@ -283,7 +287,8 @@ const App = () => {
             score: scoreDisplay,
             moves,
             streak,
-            bestMatch
+            bestMatch,
+            claimedGiftIds
         };
 
         try {
@@ -291,7 +296,7 @@ const App = () => {
         } catch {
             setMessage("Sauvegarde indisponible");
         }
-    }, [currentColorArrangement, scoreDisplay, moves, streak, bestMatch]);
+    }, [currentColorArrangement, scoreDisplay, moves, streak, bestMatch, claimedGiftIds]);
 
     useEffect(() => {
         // Un niveau correspond a 120 points, avec une notification au passage de palier.
@@ -464,6 +469,7 @@ const App = () => {
         setMoves(0);
         setStreak(0);
         setBestMatch(0);
+        setClaimedGiftIds([]);
         setSelectedSquare(null);
         setMatchedSquares(new Set());
         setHintSquares([]);
@@ -501,6 +507,18 @@ const App = () => {
         setHintSquares(hint);
         setMessage("Indice");
         schedule(() => setHintSquares([]), 1300);
+    };
+
+    const claimGift = (giftId) => {
+        if (isResolving || claimedGiftIds.includes(giftId)) return;
+
+        const giftToClaim = buildGiftsForLevel(level).find((gift) => gift.id === giftId);
+
+        if (!giftToClaim) return;
+
+        setClaimedGiftIds((currentGiftIds) => [...currentGiftIds, giftId]);
+        setScoreDisplay((score) => score + giftToClaim.rewardPoints);
+        setMessage(`Cadeau reclame: +${giftToClaim.rewardPoints} points`);
     };
 
     const level = Math.floor(scoreDisplay / 120) + 1;
@@ -596,6 +614,8 @@ const App = () => {
                         gifts={unlockedGifts}
                         latestGift={latestGift}
                         nextGiftLevel={nextGiftLevel}
+                        claimedGiftIds={claimedGiftIds}
+                        onClaimGift={claimGift}
                     />
                 </div>
             </section>
