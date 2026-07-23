@@ -7,6 +7,7 @@ import redCandy from './images/red-candy.png';
 import yellowCandy from './images/yellow-candy.png';
 import blank from './images/blank.png';
 import ScoreBoard from "./components/ScoreBoard";
+import FortuneWheel from "./components/FortuneWheel";
 
 const width = 8;
 const boardSize = width * width;
@@ -293,6 +294,7 @@ const App = () => {
     const [levelNotification, setLevelNotification] = useState(null);
     const [giftNotification, setGiftNotification] = useState(null);
     const [claimedGiftIds, setClaimedGiftIds] = useState(() => savedGame.current?.claimedGiftIds || []);
+    const [showFortune, setShowFortune] = useState(true);
     const currentBoard = useRef(currentColorArrangement);
     const previousLevel = useRef(Math.floor(scoreDisplay / 120) + 1);
     const draggedSquare = useRef(null);
@@ -483,11 +485,36 @@ const App = () => {
         droppedSquare.current = null;
     };
 
+    const handleWheelReward = (reward) => {
+        if (!reward) return;
+
+        if (reward.type === "score") {
+            setScoreDisplay((score) => score + reward.amount);
+            setMessage(`Bonus roue: +${reward.amount} points`);
+            return;
+        }
+
+        if (reward.type === "level") {
+            setScoreDisplay((score) => score + 120);
+            setMessage("Bonus roue: +1 niveau");
+            return;
+        }
+
+        if (reward.type === "gift") {
+            const giftIndex = Math.floor((scoreDisplay + 1) / 5) % giftCatalog.length;
+            const randomGift = giftCatalog[giftIndex];
+            setGiftNotification(randomGift);
+            setMessage(`Bonus roue: ${randomGift.name}`);
+            schedule(() => setGiftNotification(null), 2400);
+        }
+    };
+
     const restartGame = () => {
         // Remet toute la partie dans son etat initial et supprime la sauvegarde.
         clearTimers();
         localStorage.removeItem(savedGameKey);
         previousLevel.current = 1;
+        setShowFortune(true);
         setCurrentColorArrangement(buildPlayableBoard());
         setScoreDisplay(0);
         setMoves(0);
@@ -553,96 +580,106 @@ const App = () => {
 
     return (
         <main className="app-shell">
-            <section className="game-stage" aria-label="Candy Crush">
-                <header className="topbar">
-                    <div className="title-block">
-                        <p>Sweet arcade</p>
-                        <h1>Candy Crush</h1>
-                    </div>
-                    <div className="actions" aria-label="Actions de partie">
-                        <button type="button" className="action-button" onClick={showHint} disabled={isResolving}>
-                            Indice
-                        </button>
-                        <button type="button" className="action-button" onClick={shuffleBoard} disabled={isResolving}>
-                            Melanger
-                        </button>
-                        <button type="button" className="action-button action-button-primary" onClick={restartGame}>
-                            Rejouer
-                        </button>
-                    </div>
-                </header>
+            {showFortune ? (
+                <FortuneWheel
+                    onReward={handleWheelReward}
+                    onEnterGame={() => {
+                        setShowFortune(false);
+                        setMessage("Bienvenue dans Candy Crush");
+                    }}
+                />
+            ) : (
+                <section className="game-stage" aria-label="Candy Crush">
+                    <header className="topbar">
+                        <div className="title-block">
+                            <p>Sweet arcade</p>
+                            <h1>Candy Crush</h1>
+                        </div>
+                        <div className="actions" aria-label="Actions de partie">
+                            <button type="button" className="action-button" onClick={showHint} disabled={isResolving}>
+                                Indice
+                            </button>
+                            <button type="button" className="action-button" onClick={shuffleBoard} disabled={isResolving}>
+                                Melanger
+                            </button>
+                            <button type="button" className="action-button action-button-primary" onClick={restartGame}>
+                                Rejouer
+                            </button>
+                        </div>
+                    </header>
 
-                <div className="play-layout">
-                    <div className="board-wrap">
-                        <div className={`game-board ${isResolving ? "is-resolving" : ""}`} aria-label="Plateau de jeu">
-                            {currentColorArrangement.map((candyColor, index) => {
-                                const candy = candyBySrc[candyColor] || { name: "Case vide", accent: "#ffffff" };
-                                const classNames = [
-                                    "candy-cell",
-                                    selectedSquare === index ? "is-selected" : "",
-                                    matchedSquares.has(index) ? "is-matched" : "",
-                                    invalidSquares.has(index) ? "is-invalid" : "",
-                                    hintSquares.includes(index) ? "is-hint" : "",
-                                    isResolving ? "is-disabled" : ""
-                                ].filter(Boolean).join(" ");
+                    <div className="play-layout">
+                        <div className="board-wrap">
+                            <div className={`game-board ${isResolving ? "is-resolving" : ""}`} aria-label="Plateau de jeu">
+                                {currentColorArrangement.map((candyColor, index) => {
+                                    const candy = candyBySrc[candyColor] || { name: "Case vide", accent: "#ffffff" };
+                                    const classNames = [
+                                        "candy-cell",
+                                        selectedSquare === index ? "is-selected" : "",
+                                        matchedSquares.has(index) ? "is-matched" : "",
+                                        invalidSquares.has(index) ? "is-invalid" : "",
+                                        hintSquares.includes(index) ? "is-hint" : "",
+                                        isResolving ? "is-disabled" : ""
+                                    ].filter(Boolean).join(" ");
 
-                                return (
-                                    <button
-                                        key={`${index}-${candyColor}`}
-                                        type="button"
-                                        className={classNames}
-                                        style={{
-                                            "--candy-accent": candy.accent,
-                                            "--cell-delay": `${(index % width) * 12}ms`
-                                        }}
-                                        aria-label={`${candy.name} ${index + 1}`}
-                                        data-id={index}
-                                        draggable={!isResolving}
-                                        onClick={() => handleCandyClick(index)}
-                                        onDragStart={(event) => dragStart(event, index)}
-                                        onDragOver={(event) => event.preventDefault()}
-                                        onDragEnter={(event) => event.preventDefault()}
-                                        onDrop={(event) => dragDrop(event, index)}
-                                        onDragEnd={dragEnd}
-                                    >
-                                        <img src={candyColor} alt="" aria-hidden="true" draggable={false} />
-                                    </button>
-                                );
-                            })}
+                                    return (
+                                        <button
+                                            key={`${index}-${candyColor}`}
+                                            type="button"
+                                            className={classNames}
+                                            style={{
+                                                "--candy-accent": candy.accent,
+                                                "--cell-delay": `${(index % width) * 12}ms`
+                                            }}
+                                            aria-label={`${candy.name} ${index + 1}`}
+                                            data-id={index}
+                                            draggable={!isResolving}
+                                            onClick={() => handleCandyClick(index)}
+                                            onDragStart={(event) => dragStart(event, index)}
+                                            onDragOver={(event) => event.preventDefault()}
+                                            onDragEnter={(event) => event.preventDefault()}
+                                            onDrop={(event) => dragDrop(event, index)}
+                                            onDragEnd={dragEnd}
+                                        >
+                                            <img src={candyColor} alt="" aria-hidden="true" draggable={false} />
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <div className={`status-bubble ${message ? "is-visible" : ""}`} aria-live="polite">
+                                {message}
+                            </div>
+                            <div className={`level-toast ${levelNotification ? "is-visible" : ""}`} aria-live="assertive">
+                                <span>Bravo !</span>
+                                <strong>{levelNotification}</strong>
+                            </div>
+                            <div className={`gift-toast ${giftNotification ? "is-visible" : ""}`} aria-live="assertive">
+                                {giftNotification && (
+                                    <>
+                                        <img src={giftNotification.image} alt="" aria-hidden="true" />
+                                        <span>Nouveau cadeau</span>
+                                        <strong>{giftNotification.name}</strong>
+                                    </>
+                                )}
+                            </div>
                         </div>
-                        <div className={`status-bubble ${message ? "is-visible" : ""}`} aria-live="polite">
-                            {message}
-                        </div>
-                        <div className={`level-toast ${levelNotification ? "is-visible" : ""}`} aria-live="assertive">
-                            <span>Bravo !</span>
-                            <strong>{levelNotification}</strong>
-                        </div>
-                        <div className={`gift-toast ${giftNotification ? "is-visible" : ""}`} aria-live="assertive">
-                            {giftNotification && (
-                                <>
-                                    <img src={giftNotification.image} alt="" aria-hidden="true" />
-                                    <span>Nouveau cadeau</span>
-                                    <strong>{giftNotification.name}</strong>
-                                </>
-                            )}
-                        </div>
+
+                        <ScoreBoard
+                            score={scoreDisplay}
+                            moves={moves}
+                            streak={streak}
+                            bestMatch={bestMatch}
+                            level={level}
+                            progress={progress}
+                            gifts={unlockedGifts}
+                            latestGift={latestGift}
+                            nextGiftLevel={nextGiftLevel}
+                            claimedGiftIds={claimedGiftIds}
+                            onClaimGift={claimGift}
+                        />
                     </div>
-
-                    <ScoreBoard
-                        score={scoreDisplay}
-                        moves={moves}
-                        streak={streak}
-                        bestMatch={bestMatch}
-                        level={level}
-                        progress={progress}
-                        gifts={unlockedGifts}
-                        latestGift={latestGift}
-                        nextGiftLevel={nextGiftLevel}
-                        claimedGiftIds={claimedGiftIds}
-                        onClaimGift={claimGift}
-                    />
-                </div>
-            </section>
+                </section>
+            )}
         </main>
     );
 }
